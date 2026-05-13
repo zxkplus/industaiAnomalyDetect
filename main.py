@@ -554,14 +554,14 @@ def main():
     
     elif args.mode == 'detect':
         # 检测模式
-        if not argsnormal_model:
+        if not args.normal_model:
             print("错误: 检测模式需要指定 --normal_model")
             return
         
         pipeline.initialize()
         pipeline.load_models(
-            argsnormal_model,
-            argsanomaly_library
+            args.normal_model,
+            args.anomaly_library
         )
         
         if args.test_image:
@@ -580,14 +580,14 @@ def main():
     
     elif args.mode == 'analyze':
         # 分析模式：测试不同阈值
-        if not argsnormal_model:
+        if not args.normal_model:
             print("错误: 分析模式需要指定 --normal_model")
             return
         
         pipeline.initialize()
         pipeline.load_models(
-            argsnormal_model,
-            argsanomaly_library
+            args.normal_model,
+            args.anomaly_library
         )
         
         test_dir = os.path.join(args.data_dir, 'test_samples')
