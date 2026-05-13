@@ -81,8 +81,20 @@ class AnomalyDetector:
         
         # 提取特征
         features, coords = self.extractor.extract(image, target_size)
-        feature_h, feature_w = coords[:, 0].max().astype(int) + 1, \
-                                coords[:, 2].max().astype(int) + 1
+        # 修复：正确计算特征图维度
+        # 对于大多数CNN特征提取器，特征图是正方形的
+        total_points = len(features)
+        feature_size = int(np.sqrt(total_points))
+        if feature_size * feature_size != total_points:
+            # 如果不是完全平方数，寻找因数分解
+            feature_h = feature_w = feature_size
+            for h in range(feature_size, 0, -1):
+                if total_points % h == 0:
+                    feature_h = h
+                    feature_w = total_points // h
+                    break
+        else:
+            feature_h = feature_w = feature_size
         
         # 计算异常分数
         anomaly_scores = self.normal_model.calculate_anomaly_score(
