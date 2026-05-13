@@ -302,6 +302,30 @@ class AnomalyLibrary:
         if category is not None:
             library_features = self.categories[category]['features']
             library_coords = self.categories[category]['coords']
+            
+            # 确保library_features是2D numpy数组 (N, D)
+            if isinstance(library_features, list):
+                if len(library_features) == 0:
+                    raise ValueError(f"类别 {category} 没有特征数据")
+                library_features = np.vstack(library_features)
+            elif isinstance(library_features, np.ndarray):
+                if library_features.ndim == 1:
+                    library_features = library_features.reshape(1, -1)
+                elif library_features.ndim > 2:
+                    # 处理3D或更高维数组，展平为2D
+                    library_features = library_features.reshape(-1, library_features.shape[-1])
+            
+            # 确保library_coords是2D numpy数组 (N, 4)
+            if isinstance(library_coords, list):
+                if len(library_coords) == 0:
+                    library_coords = np.zeros((library_features.shape[0], 4), dtype=np.float32)
+                else:
+                    library_coords = np.vstack(library_coords)
+            elif isinstance(library_coords, np.ndarray):
+                if library_coords.ndim == 1:
+                    library_coords = library_coords.reshape(1, -1)
+                elif library_coords.ndim > 2:
+                    library_coords = library_coords.reshape(-1, library_coords.shape[-1])
         else:
             if not self.is_built:
                 raise RuntimeError("请先调用 build() 方法")
@@ -431,6 +455,40 @@ class AnomalyLibrary:
         library.all_features = state['all_features']
         library.all_coords = state['all_coords']
         library.is_built = state['is_built']
+        
+        # 验证状态一致性：如果有all_features，则应该已经构建
+        if library.all_features is not None:
+            library.is_built = True
+        else:
+            library.is_built = False
+        
+        # 修复：确保加载后的数据格式正确，重新构建异常库
+        if library.is_built and library.all_features is not None:
+            # 如果已经构建过，确保categories中的数据也是正确的2D数组格式
+            for cat, data in library.categories.items():
+                if len(data['features']) > 0:
+                    # 检查是否已经是2D数组，如果不是则进行vstack
+                    if isinstance(data['features'], list):
+                        try:
+                            library.categories[cat]['features'] = np.vstack(data['features'])
+                        except ValueError:
+                            # 如果vstack失败，说明可能已经是正确格式或其他问题
+                            pass
+                    elif data['features'].ndim != 2:
+                        # 确保是2D数组
+                        library.categories[cat]['features'] = data['features'].reshape(-1, data['features'].shape[-1])
+                    
+                    if isinstance(data['coords'], list):
+                        try:
+                            library.categories[cat]['coords'] = np.vstack(data['coords'])
+                        except ValueError:
+                            pass
+                    elif data['coords'].ndim != 2:
+                        library.categories[cat]['coords'] = data['coords'].reshape(-1, data['coords'].shape[-1])
+        else:
+            # 如果没有构建过，需要构建
+            if any(len(data['features']) > 0 for data in library.categories.values()):
+                library.build(normalize=False)  # 使用原始归一化状态
         
         print(f"异常特征库已加载: {library.total_features} 个特征点, {len(library.categories)} 个类别")
         
