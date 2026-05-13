@@ -104,19 +104,19 @@ class AnomalyDetector:
         # 重塑为特征图形状
         score_map = anomaly_scores.reshape(feature_h, feature_w)
         
-        # 上采样到原图尺寸
+        # 上采样到原图尺寸（仅用于可视化）
         upsampled_scores = upsample_scores(score_map, self.original_size[0], self.original_size[1])
         
-        # 生成坐标映射
-        from utils import feature_map_to_coords
+        # 生成坐标映射（使用特征图尺寸）
+        from .utils import feature_map_to_coords
         full_coords = feature_map_to_coords(
             feature_h, feature_w, 
             self.original_size[0], self.original_size[1]
         )
         
-        # 生成矩形框
+        # 生成矩形框（使用特征图尺寸的分数图，与coords尺寸匹配）
         boxes = generate_boxes_from_scores(
-            upsampled_scores, 
+            score_map, 
             full_coords,
             threshold=self.score_threshold,
             min_area=self.min_box_area
