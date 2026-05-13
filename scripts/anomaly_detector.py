@@ -37,7 +37,7 @@ class AnomalyDetector:
         """
         self.extractor = extractor
         self.normal_model = normal_model
-        self.normal_model = anomaly_library
+        self.anomaly_library = anomaly_library
         self.k_neighbors = k_neighbors
         self.score_threshold = score_threshold
         self.nms_threshold = nms_threshold
@@ -116,7 +116,7 @@ class AnomalyDetector:
         
         # 判断异常类别
         anomaly_class = 'unknown'
-        if self.normal_model is not None and len(boxes) > 0:
+        if self.anomaly_library is not None and len(boxes) > 0:
             anomaly_class = self._classify_anomaly(features, boxes, coords)
         
         # 计算置信度
@@ -217,7 +217,7 @@ class AnomalyDetector:
         
         # 计算与异常库的相似度
         if len(features) > 0:
-            anomaly_similarities = self.normal_model.calculate_similarity(features)
+            anomaly_similarities = self.anomaly_library.calculate_similarity(features)
             
             # 结合正常模型和异常库的结果
             normal_scores = self.normal_model.calculate_anomaly_score(
@@ -278,7 +278,7 @@ class AnomalyDetector:
         Returns:
             分类结果类别名称
         """
-        if self.normal_model is None or len(boxes) == 0:
+        if self.anomaly_library is None or len(boxes) == 0:
             return 'unknown'
         
         # 获取每个box中心点对应的特征
@@ -300,8 +300,8 @@ class AnomalyDetector:
         
         # 查询异常库进行分类
         category_scores = {}
-        for category in self.normal_model.get_categories():
-            similarities = self.normal_model.calculate_similarity(
+        for category in self.anomaly_library.get_categories():
+            similarities = self.anomaly_library.calculate_similarity(
                 box_features, category=category
             )
             category_scores[category] = float(np.max(similarities))
@@ -351,8 +351,8 @@ class AnomalyDetector:
         }
         
         # 如果有异常库，添加分类信息
-        if self.normal_model is not None:
-            similarities = self.normal_model.calculate_similarity(features)
+        if self.anomaly_library is not None:
+            similarities = self.anomaly_library.calculate_similarity(features)
             stats['anomaly_similarities'] = {
                 'mean': float(np.mean(similarities)),
                 'max': float(np.max(similarities))
@@ -369,10 +369,10 @@ class AnomalyDetector:
         self.nms_threshold = threshold
     
     def __repr__(self) -> str:
-        lib_info = f", anomaly_library={len(self.normal_model)} categories" if self.normal_model else ""
+        lib_info = f", anomaly_library={len(self.anomaly_library)} categories" if self.anomaly_library else ""
         return (f"AnomalyDetector(k={self.k_neighbors}, "
                 f"threshold={self.score_threshold}, "
-                f"normal_features={len(self.normal_model)}{lib_info})")
+                f"normal_features={len(self.anomaly_library)}{lib_info})")
 
 
 class BatchAnomalyDetector:
